@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Image uploader</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <style>
+        body { font-family: Arial, Helvetica, sans-serif; padding:24px; background:#fafafa; color:#111 }
+        .container { max-width:720px; margin:0 auto; background:white; padding:18px; border-radius:8px; box-shadow:0 6px 24px rgba(0,0,0,.06) }
+        input[type=file], input[type=text] { display:block; margin-bottom:12px; width:100%; padding:6px }
+        button, .btn { padding:10px 16px; border:none; border-radius:6px; background:#4f46e5; color:white; cursor:pointer; text-decoration:none; }
+        .result { margin-top:16px; word-break:break-all }
+        img.preview { max-width:100%; margin-top:12px; border-radius:6px; }
+        .hint { color:#666; font-size:14px; margin-top:8px }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div style="text-align:center; margin-bottom:16px;">
+        <a href="/gallery" class="btn">Galerie</a>
+    </div>
+
+    <h1>Uploader d'images</h1>
+    <p>Choisis une image (jpeg, png, webp, gif).</p>
+
+    <input id="file" type="file" accept="image/*">
+    <input id="id" type="text" placeholder="ID personnalisé (facultatif)">
+    <div>
+        <button id="uploadBtn">Téléverser</button>
+    </div>
+
+    <div class="result" id="result"></div>
+    <div class="hint">
+        Quand tu colles l'URL directe (ex: <code>https://.../i/xxxxx</code>) dans Discord, il affichera l'image.
+        Si tu veux un embed riche (titre + image), utilise le lien <code>/view/xxxxx</code>.
+    </div>
+</div>
+
+<script>
+    const fileInput = document.getElementById("file");
+    const idInput = document.getElementById("id");
+    const uploadBtn = document.getElementById("uploadBtn");
+    const result = document.getElementById("result");
+
+    const BASE = "";
+
+    uploadBtn.addEventListener("click", async () => {
+        result.innerHTML = "";
+        const file = fileInput.files[0];
+        if (!file) { result.textContent = "Choisis un fichier d'abord."; return; }
+
+        const fd = new FormData();
+        fd.append("file", file);
+        const customId = idInput.value.trim();
+        if(customId) fd.append("id", customId);
+
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = "Téléversement...";
+
+        try {
+            const res = await fetch("/upload", {
+                method: "POST",
+                body: fd,
+                headers: {
+                    'Authorization': 'Basic ' + btoa(prompt("Admin username:")+"："+prompt("Admin password:"))
+                }
+            });
+            const j = await res.json();
+            if(!res.ok) throw new Error(j.error||"Upload failed");
+
+            const img = document.createElement("img");
+            img.className = "preview";
+            img.src = j.url + "?t=" + Date.now();
+            result.appendChild(img);
+
+            const p = document.createElement("p");
+            p.innerHTML = `<strong>Direct URL:</strong> <a href="${j.url}" target="_blank">${j.url}</a><br>
+                       <strong>View URL (with embed):</strong> <a href="${j.viewUrl}" target="_blank">${j.viewUrl}</a>`;
+            result.appendChild(p);
+
+            const copyBtn = document.createElement("button");
+            copyBtn.textContent = "Copier direct URL";
+            copyBtn.onclick = () => {
+                navigator.clipboard.writeText(j.url);
+                copyBtn.textContent = "Copié !";
+                setTimeout(()=>copyBtn.textContent="Copier direct URL",1300);
+            };
+            result.appendChild(copyBtn);
+
+        } catch(err) {
+            result.textContent = "Erreur: " + err.message;
+        } finally {
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = "Téléverser";
+        }
+    });
+</script>
+</body>
+</html>
