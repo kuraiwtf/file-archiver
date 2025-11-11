@@ -232,7 +232,7 @@ document.querySelectorAll('.delete-btn').forEach(btn => {
       const res = await fetch("/delete/" + id, {
         method: "DELETE",
         headers: {
-          'Authorization': 'Basic ' + btoa(user + ":" + pass)
+          'Authorization': 'Basic ' + b64EncodeUnicode(user + ":" + pass)
         }
       });
       const j = await res.json();
@@ -272,6 +272,14 @@ app.delete("/delete/:id", requireAuth, (req, res) => {
         return res.status(500).json({ error: "Failed to delete" });
     }
 });
+
+function b64EncodeUnicode(str) {
+    return btoa(
+        encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p1) =>
+            String.fromCharCode('0x' + p1)
+        )
+    );
+}
 
 function escapeHtml(s) {
     if (!s) return "";
