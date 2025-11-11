@@ -2,8 +2,8 @@ import express from "express";
 import multer from "multer";
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
-import { v4 as uuidv4 } from "uuid";
+import {fileURLToPath} from "url";
+import {v4 as uuidv4} from "uuid";
 import mime from "mime-types";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -20,12 +20,12 @@ const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, "uploads");
 const ADMIN_USER = process.env.ADMIN_USER || "admin";
 const ADMIN_PASS = process.env.ADMIN_PASS || "password";
 
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, {recursive: true});
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({extended: true}));
 
 app.use("/", express.static(path.join(__dirname, "public")));
 
@@ -68,20 +68,20 @@ const upload = multer({
 // 🔹 Upload
 app.post("/upload", requireAuth, upload.single("file"), (req, res) => {
     try {
-        if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+        if (!req.file) return res.status(400).json({error: "No file uploaded"});
 
         let customId = req.body.id || req.query.id || null;
 
         if (customId) {
             if (!/^[a-zA-Z0-9_-]+$/.test(customId)) {
                 fs.unlinkSync(req.file.path);
-                return res.status(400).json({ error: "Invalid ID" });
+                return res.status(400).json({error: "Invalid ID"});
             }
 
             const jsonPath = path.join(UPLOAD_DIR, `${customId}.json`);
             if (fs.existsSync(jsonPath)) {
                 fs.unlinkSync(req.file.path);
-                return res.status(409).json({ error: "This ID already exists" });
+                return res.status(409).json({error: "This ID already exists"});
             }
         }
 
@@ -102,10 +102,10 @@ app.post("/upload", requireAuth, upload.single("file"), (req, res) => {
 
         const imageUrl = `${BASE_URL}/i/${id}`;
         const viewUrl = `${BASE_URL}/view/${id}`;
-        return res.json({ id, url: imageUrl, viewUrl });
+        return res.json({id, url: imageUrl, viewUrl});
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ error: "Server error" });
+        return res.status(500).json({error: "Server error"});
     }
 });
 
@@ -229,10 +229,11 @@ document.querySelectorAll('.delete-btn').forEach(btn => {
     try {
       const user = prompt("Admin username:");
       const pass = prompt("Admin password:");
+      const credentials = btoa(unescape(encodeURIComponent(user + ":" + pass)));
       const res = await fetch("/delete/" + id, {
         method: "DELETE",
         headers: {
-          'Authorization': 'Basic ' + b64EncodeUnicode(user + ":" + pass)
+          'Authorization': 'Basic ' + credentials
         }
       });
       const j = await res.json();
@@ -258,7 +259,7 @@ document.querySelectorAll('.delete-btn').forEach(btn => {
 app.delete("/delete/:id", requireAuth, (req, res) => {
     const id = req.params.id; // <- c'est ici qu'on récupère l'id
     const jsonPath = path.join(UPLOAD_DIR, `${id}.json`);
-    if (!fs.existsSync(jsonPath)) return res.status(404).json({ error: "Not found" });
+    if (!fs.existsSync(jsonPath)) return res.status(404).json({error: "Not found"});
 
     const meta = JSON.parse(fs.readFileSync(jsonPath, "utf8"));
     const filePath = path.join(UPLOAD_DIR, meta.filename);
@@ -266,26 +267,19 @@ app.delete("/delete/:id", requireAuth, (req, res) => {
     try {
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
         fs.unlinkSync(jsonPath);
-        return res.json({ ok: true });
+        return res.json({ok: true});
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ error: "Failed to delete" });
+        return res.status(500).json({error: "Failed to delete"});
     }
 });
 
-function b64EncodeUnicode(str) {
-    return btoa(
-        encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p1) =>
-            String.fromCharCode('0x' + p1)
-        )
-    );
-}
 
 function escapeHtml(s) {
     if (!s) return "";
-    return s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    return s.replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
 }
 
-app.get("/health", (req, res) => res.json({ ok: true }));
+app.get("/health", (req, res) => res.json({ok: true}));
 
 app.listen(PORT, () => console.log(`🚀 Server running at ${BASE_URL}`));
